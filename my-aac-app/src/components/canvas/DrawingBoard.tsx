@@ -1,25 +1,99 @@
-'use client'; // This directive is CRITICAL for canvas libraries
+'use client';
 
-import { useRef, useState } from 'react';
-import { ReactSketchCanvas, ReactSketchCanvasRef } from 'react-sketch-canvas';
+import { useRef, useState, useEffect } from 'react';
+import { ReactSketchCanvasRef, CanvasPath } from 'react-sketch-canvas'; 
+import dynamic from 'next/dynamic'; 
 import { Eraser, Undo, Trash2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { saveDrawing, getSavedDrawing } from '@/lib/storage';
+
+// Fix 1: Dynamic Import (You already have this)
+const ReactSketchCanvas = dynamic(
+  () => import('react-sketch-canvas').then((mod) => mod.ReactSketchCanvas),
+  { 
+    ssr: false,
+    loading: () => <div className="h-full w-full bg-slate-100 animate-pulse" /> 
+  }
+);
 
 export default function DrawingBoard() {
   const canvasRef = useRef<ReactSketchCanvasRef>(null);
+  
   const [penColor, setPenColor] = useState("black");
   const [isEraser, setIsEraser] = useState(false);
+  
+  const [dataLoaded, setDataLoaded] = useState(false); 
+  const [initialPaths, setInitialPaths] = useState<CanvasPath[]>([]);
 
-  // Pen colors tailored for clarity vs sensory overload
+  // 1. Fetch data from DB
+  useEffect(() => {
+    getSavedDrawing().then((savedPaths) => {
+      if (savedPaths && savedPaths.length > 0) {
+        setInitialPaths(savedPaths);
+        console.log("Found saved drawing:", savedPaths.length, "paths");
+      }
+      setDataLoaded(true);
+    });
+  }, []);
+
+  // 2. Fix 2: The "Retry" Loader
+  useEffect(() => {
+    if (!dataLoaded) return;
+
+    // We set up a small timer to check for the canvas repeatedly
+    const intervalId = setInterval(() => {
+      if (canvasRef.current) {
+        // FOUND IT!
+        console.log("Canvas is ready. Loading paths...");
+        
+        // Only load if we actually have paths
+        if (initialPaths.length > 0) {
+             canvasRef.current.loadPaths(initialPaths);
+        }
+        
+        // Stop checking
+        clearInterval(intervalId);
+      }
+    }, 100); // Check every 100ms
+
+    // Safety: Stop checking after 3 seconds so we don't run forever
+    const timeoutId = setTimeout(() => clearInterval(intervalId), 3000);
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(timeoutId);
+    };
+  }, [dataLoaded, initialPaths]);
+
+  // 3. Save Function (With Safety Guard)
+  const handleStroke = async () => {
+    // Don't save if we are still initializing!
+    if (!dataLoaded || !canvasRef.current) return;
+
+    try {
+      const paths = await canvasRef.current.exportPaths();
+      saveDrawing(paths);
+    } catch (error) {
+      console.error("Error saving:", error);
+    }
+  };
+
+  const handleClear = () => {
+    canvasRef.current?.clearCanvas();
+    saveDrawing([]); 
+    setInitialPaths([]); // Clear our local state too
+  };
+
+  // --- UI Helpers ---
   const colors = [
     { name: 'Black', value: 'black' },
-    { name: 'Blue', value: '#2563eb' }, // High contrast blue
-    { name: 'Red', value: '#dc2626' },  // Alert/Important
-    { name: 'Green', value: '#16a34a' } // Safe/Go
+    { name: 'Blue', value: '#2563eb' },
+    { name: 'Red', value: '#dc2626' },
+    { name: 'Green', value: '#16a34a' }
   ];
 
   const handleColorClick = (color: string) => {
-    setIsEraser(false); // Turn off eraser if picking a color
+    setIsEraser(false);
     setPenColor(color);
   };
 
@@ -35,9 +109,8 @@ export default function DrawingBoard() {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-50"> 
-      {/* h-[100dvh] ensures it fits mobile screens perfectly without scrollbars */}
-
-      {/* Top Bar: Navigation & Actions */}
+      
+      {/* Top Bar */}
       <div className="flex items-center justify-between p-4 bg-white shadow-sm border-b border-slate-200">
         <Link href="/" className="p-3 bg-slate-100 rounded-xl hover:bg-slate-200 active:scale-95 transition">
           <ArrowLeft size={28} className="text-slate-700" />
@@ -52,7 +125,7 @@ export default function DrawingBoard() {
                 <span className="hidden sm:inline">Undo</span>
             </button>
             <button 
-                onClick={() => canvasRef.current?.clearCanvas()}
+                onClick={handleClear} 
                 className="flex items-center gap-2 px-4 py-3 bg-red-100 text-red-700 rounded-xl font-bold active:scale-95 transition"
             >
                 <Trash2 size={24} />
@@ -63,22 +136,22 @@ export default function DrawingBoard() {
 
       {/* Canvas Area */}
       <div className="flex-grow relative touch-none"> 
-        {/* touch-none prevents the screen from scrolling while drawing on mobile */}
-        <ReactSketchCanvas
-            ref={canvasRef}
-            strokeWidth={5}
-            strokeColor={penColor}
-            eraserWidth={30}
-            canvasColor="white"
-            style={{ border: 'none' }}
-        />
+         {dataLoaded && (
+            <ReactSketchCanvas
+                ref={canvasRef}
+                strokeWidth={5}
+                strokeColor={penColor}
+                eraserWidth={30}
+                canvasColor="white"
+                style={{ border: 'none' }}
+                onChange={handleStroke} 
+            />
+         )}
       </div>
 
-      {/* Bottom Bar: Tools & Colors */}
+      {/* Bottom Bar */}
       <div className="p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
         <div className="flex justify-between items-center max-w-lg mx-auto">
-            
-            {/* Color Palette */}
             <div className="flex gap-4">
                 {colors.map((c) => (
                     <button
@@ -90,20 +163,14 @@ export default function DrawingBoard() {
                             : 'border-transparent'
                         }`}
                         style={{ backgroundColor: c.value }}
-                        aria-label={`Select ${c.name}`}
                     />
                 ))}
             </div>
-
-            {/* Eraser Toggle */}
             <div className="h-10 w-px bg-slate-300 mx-2"></div>
-
             <button
                 onClick={isEraser ? handlePenClick : handleEraserClick}
                 className={`p-3 rounded-xl transition-all active:scale-95 ${
-                    isEraser 
-                    ? 'bg-slate-800 text-white shadow-md' 
-                    : 'bg-slate-100 text-slate-500'
+                    isEraser ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-100 text-slate-500'
                 }`}
             >
                 <Eraser size={28} />

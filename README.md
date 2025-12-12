@@ -1,6 +1,7 @@
 # kakehashi
 
 Communicate Visually
+This was originally designed for those who have difficulty with verbal communication. It allows users to communicate with pre-installed cards, as well as their own drawings. There is also an emergency contact section in cases of emergency with emergency contact information.
 
 > Currently hosted on [Vercel](https://kakehashi-blue.vercel.app/)
 

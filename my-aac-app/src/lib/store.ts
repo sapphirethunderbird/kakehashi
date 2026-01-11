@@ -24,20 +24,34 @@ interface CardState {
   cards: Card[];
   addCard: (card: Card) => void;
   removeCard: (id: string) => void;
+  reorderCards: (activeId: string, overId: string) => void; // NEW
   resetCards: () => void;
 }
 
-// 3. Create the store with "persist" (Auto-saves to localStorage)
 export const useCardStore = create<CardState>()(
   persist(
     (set) => ({
-      cards: DEFAULT_CARDS,
+      cards: [], // Keep your default cards here
       addCard: (card) => set((state) => ({ cards: [...state.cards, card] })),
       removeCard: (id) => set((state) => ({ cards: state.cards.filter((c) => c.id !== id) })),
-      resetCards: () => set({ cards: DEFAULT_CARDS }),
+      
+      // NEW: Logic to swap items
+      reorderCards: (activeId, overId) => set((state) => {
+        const oldIndex = state.cards.findIndex((c) => c.id === activeId);
+        const newIndex = state.cards.findIndex((c) => c.id === overId);
+        
+        // Create a copy and move the item
+        const newCards = [...state.cards];
+        const [movedItem] = newCards.splice(oldIndex, 1);
+        newCards.splice(newIndex, 0, movedItem);
+        
+        return { cards: newCards };
+      }),
+
+      resetCards: () => set({ cards: [] }), // (Your defaults)
     }),
     {
-      name: 'aac-cards-storage', // unique name for localStorage
+      name: 'aac-cards-storage',
     }
   )
 );

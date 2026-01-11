@@ -120,7 +120,7 @@ export default function CardsPage() {
                             value={newLabel}
                             onChange={(e) => setNewLabel(e.target.value)}
                             placeholder="e.g. iPad"
-                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full p-3 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
 

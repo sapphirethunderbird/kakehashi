@@ -89,7 +89,13 @@ export default function DrawingBoard() {
     { name: 'Black', value: 'black' },
     { name: 'Blue', value: '#2563eb' },
     { name: 'Red', value: '#dc2626' },
-    { name: 'Green', value: '#16a34a' }
+    { name: 'Green', value: '#16a34a' },
+    { name: 'Orange', value: '#f97316' },
+    { name: 'Purple', value: '#a855f7' },
+    { name: 'Pink', value: '#ec4899' },
+    { name: 'Yellow', value: '#eab308' },
+    { name: 'Teal', value: '#14b8a6' },
+    { name: 'Indigo', value: '#6366f1' }
   ];
 
   const handleColorClick = (color: string) => {

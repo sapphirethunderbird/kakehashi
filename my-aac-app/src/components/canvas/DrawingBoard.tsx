@@ -154,29 +154,45 @@ export default function DrawingBoard() {
             />
          )}
       </div>
-
-      {/* Bottom Bar */}
-      <div className="p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-        <div className="flex justify-between items-center max-w-lg mx-auto">
-            <div className="flex gap-4">
-                {colors.map((c) => (
-                    <button
-                        key={c.value}
-                        onClick={() => handleColorClick(c.value)}
-                        className={`w-12 h-12 rounded-full border-4 transition-transform active:scale-90 ${
-                            !isEraser && penColor === c.value 
-                            ? 'border-slate-800 scale-110 shadow-md' 
-                            : 'border-transparent'
-                        }`}
-                        style={{ backgroundColor: c.value }}
-                    />
-                ))}
+      {/* Bottom Bar: Tools & Colors */}
+      <div className="p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] safe-area-bottom">
+        
+        {/* We use 'max-w-full' to ensure it never exceeds the screen width */}
+        <div className="flex items-center justify-between max-w-lg mx-auto w-full gap-4">
+            
+            {/* COLOR SCROLLER: 
+                1. flex-1: Take up all available space
+                2. overflow-x-auto: Scroll sideways if needed
+                3. no-scrollbar: Hide the ugly grey bar (see CSS below)
+            */}
+            <div className="flex-1 overflow-x-auto no-scrollbar">
+                <div className="flex gap-3 px-1 py-1 min-w-max"> 
+                    {colors.map((c) => (
+                        <button
+                            key={c.value}
+                            onClick={() => handleColorClick(c.value)}
+                            className={`w-12 h-12 rounded-full border-4 transition-transform active:scale-90 flex-shrink-0 ${
+                                !isEraser && penColor === c.value 
+                                ? 'border-slate-800 scale-110 shadow-md' 
+                                : 'border-transparent'
+                            }`}
+                            style={{ backgroundColor: c.value }}
+                            aria-label={`Select ${c.name}`}
+                        />
+                    ))}
+                </div>
             </div>
-            <div className="h-10 w-px bg-slate-300 mx-2"></div>
+
+            {/* Divider */}
+            <div className="h-10 w-px bg-slate-300 flex-shrink-0"></div>
+
+            {/* Eraser (Fixed position on the right) */}
             <button
                 onClick={isEraser ? handlePenClick : handleEraserClick}
-                className={`p-3 rounded-xl transition-all active:scale-95 ${
-                    isEraser ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-100 text-slate-500'
+                className={`p-3 rounded-xl transition-all active:scale-95 flex-shrink-0 ${
+                    isEraser 
+                    ? 'bg-slate-800 text-white shadow-md' 
+                    : 'bg-slate-100 text-slate-500'
                 }`}
             >
                 <Eraser size={28} />
